@@ -1,4 +1,12 @@
-package  
+/*
+ * flash recorder Plugin for JavaScript
+ *
+ *
+ * FlashVars expected: (AS3 property of: loaderInfo.parameters)
+ *	recorderInstance:	(URL Encoded: String) Sets the JavaScript recorder object.
+ *
+ */
+package
 {
 	import flash.events.TimerEvent;
 	import flash.events.Event;
@@ -14,16 +22,16 @@ package
 	import flash.system.Security;
 	import flash.system.SecurityPanel;
 	import flash.events.StatusEvent;
-	
+
 	import mx.collections.ArrayCollection;
 
-	
+
 	public class Recorder
 	{
 		public function Recorder()
 		{
 		}
-		
+
 		public function addExternalInterfaceCallbacks():void {
 			ExternalInterface.addCallback("recordStart", 		this.record);
 			ExternalInterface.addCallback("isRecording", 		this.inRecording);
@@ -35,7 +43,10 @@ package
 			ExternalInterface.addCallback("recordingDuration",     this.recordingDuration);
 			ExternalInterface.addCallback("playDuration",     this.playDuration);
 
+
 			trace("Recorder initialized");
+			this.recorderInstance = 'window.recorder.';
+			triggerEvent('initialized');
 		}
 
 
@@ -48,6 +59,7 @@ package
 		protected var channel:SoundChannel;
 		protected var recordingStartTime = 0;
 		protected static var sampleRate = 44.1;
+		private var recorderInstance:String;
 
 		protected function record():void
 		{
@@ -58,6 +70,7 @@ package
 			microphoneWasMuted = microphone.muted;
 			if(microphoneWasMuted){
 				trace('showFlashRequired');
+				triggerEvent('microphoneMuted');
 			}else{
 				notifyRecordingStarted();
 			}
@@ -79,6 +92,7 @@ package
 		protected function recordStop():int
 		{
 			trace('stopRecording');
+			triggerEvent('stop');
 			isRecording = false;
 			microphone.removeEventListener(SampleDataEvent.SAMPLE_DATA, recordSampleDataHandler);
 			return recordingDuration();
@@ -159,7 +173,7 @@ package
 
 			trace('setupMicrophone done: ' + microphone.name + ' ' + microphone.muted);
 		}
-		
+
 		protected function notifyRecordingStarted():void
 		{
 			if(microphoneWasMuted){
@@ -167,9 +181,10 @@ package
 			}
 			recordingStartTime = getTimer();
 			trace('startRecording');
+			triggerEvent('record');
 			isRecording = true;
 		}
-		
+
 		protected function recordingDuration():int
 		{
 			var duration = int(getTimer() - recordingStartTime);
@@ -214,6 +229,16 @@ package
 				}
 			}
 			trace("Wrote " + writtenSamples + " samples");
+		}
+
+		protected function triggerEvent(eventName:String, arg0=null, arg1 = null):void
+		{
+			ExternalInterface.call(this.recorderInstance+"triggerEvent", eventName, arg0, arg1);
+		}
+
+		protected function log(message:String):void
+		{
+			ExternalInterface.call('console.log', 'flash: '+message);
 		}
 	}
 }
