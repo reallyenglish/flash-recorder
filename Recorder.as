@@ -1,0 +1,219 @@
+package  
+{
+	import flash.events.TimerEvent;
+	import flash.events.Event;
+	import flash.events.ErrorEvent;
+	import flash.events.SampleDataEvent;
+	import flash.external.ExternalInterface;
+	import flash.media.Microphone;
+	import flash.media.Sound;
+	import flash.media.SoundChannel;
+	import flash.utils.ByteArray;
+	import flash.utils.getTimer;
+	import flash.utils.Timer;
+	import flash.system.Security;
+	import flash.system.SecurityPanel;
+	import flash.events.StatusEvent;
+	
+	import mx.collections.ArrayCollection;
+
+	
+	public class Recorder
+	{
+		public function Recorder()
+		{
+		}
+		
+		public function addExternalInterfaceCallbacks():void {
+			ExternalInterface.addCallback("recordStart", 		this.record);
+			ExternalInterface.addCallback("isRecording", 		this.inRecording);
+			ExternalInterface.addCallback("isMicrophoneMuted", 		this.isMicrophoneMuted);
+			ExternalInterface.addCallback("recordStop",  		this.stop);
+			ExternalInterface.addCallback("playback",          this.play);
+			ExternalInterface.addCallback("audioData",      this.audioData);
+			ExternalInterface.addCallback("showFlash",      this.showFlash);
+			ExternalInterface.addCallback("recordingDuration",     this.recordingDuration);
+			ExternalInterface.addCallback("playDuration",     this.playDuration);
+
+			trace("Recorder initialized");
+		}
+
+
+		protected var isRecording:Boolean = false;
+		protected var isPlaying:Boolean = false;
+		protected var microphoneWasMuted:Boolean;
+		protected var microphone:Microphone;
+		protected var buffer:ByteArray = new ByteArray();
+		protected var sound:Sound;
+		protected var channel:SoundChannel;
+		protected var recordingStartTime = 0;
+		protected static var sampleRate = 44.1;
+
+		protected function record():void
+		{
+			if(!microphone){
+				setupMicrophone();
+			}
+
+			microphoneWasMuted = microphone.muted;
+			if(microphoneWasMuted){
+				trace('showFlashRequired');
+			}else{
+				notifyRecordingStarted();
+			}
+
+			buffer = new ByteArray();
+			microphone.addEventListener(SampleDataEvent.SAMPLE_DATA, recordSampleDataHandler);
+		}
+
+		protected function inRecording():Boolean
+		{
+			return this.isRecording;
+		}
+
+		protected function isMicrophoneMuted():Boolean
+		{
+			return microphoneWasMuted;
+		}
+
+		protected function recordStop():int
+		{
+			trace('stopRecording');
+			isRecording = false;
+			microphone.removeEventListener(SampleDataEvent.SAMPLE_DATA, recordSampleDataHandler);
+			return recordingDuration();
+		}
+
+		protected function play():void
+		{
+			trace('startPlaying');
+			isPlaying = true;
+			buffer.position = 0;
+			sound = new Sound();
+			sound.addEventListener(SampleDataEvent.SAMPLE_DATA, playSampleDataHandler);
+
+			channel = sound.play();
+			channel.addEventListener(Event.SOUND_COMPLETE, function(){
+				playStop();
+			});
+		}
+
+		protected function stop():int
+		{
+			playStop();
+			return recordStop();
+		}
+
+		protected function playStop():void
+		{
+			trace('stopPlaying');
+			if(channel){
+				channel.stop();
+				isPlaying = false;
+			}
+		}
+
+		protected function audioData(newData:String=null):String
+		{
+			var delimiter = ";"
+			if(newData){
+				buffer = new ByteArray();
+				var splittedData = newData.split(delimiter);
+				for(var i=0; i < splittedData.length; i++){
+					buffer.writeFloat(parseFloat(splittedData[i]));
+				}
+				return "";
+			}else{
+				var ret:String="";
+				buffer.position = 0;
+				while (buffer.bytesAvailable > 0)
+				{
+					ret += buffer.readFloat().toString() + delimiter;
+				}
+				return ret;
+			}
+		}
+
+		protected function showFlash():void
+		{
+			Security.showSettings(SecurityPanel.PRIVACY);
+		}
+
+		/* Recording Helper */
+		protected function setupMicrophone():void
+		{
+			trace('setupMicrophone');
+			microphone = Microphone.getMicrophone();
+			microphone.codec = "Nellymoser";
+			microphone.setSilenceLevel(0);
+			microphone.rate = sampleRate;
+			microphone.gain = 50;
+			microphone.addEventListener(StatusEvent.STATUS, function statusHandler(e:Event) {
+				trace('Microphone Status Change');
+				if(!microphone.muted){
+					if(!isRecording){
+						notifyRecordingStarted();
+					}
+				}
+			});
+
+			trace('setupMicrophone done: ' + microphone.name + ' ' + microphone.muted);
+		}
+		
+		protected function notifyRecordingStarted():void
+		{
+			if(microphoneWasMuted){
+				microphoneWasMuted = false;
+			}
+			recordingStartTime = getTimer();
+			trace('startRecording');
+			isRecording = true;
+		}
+		
+		protected function recordingDuration():int
+		{
+			var duration = int(getTimer() - recordingStartTime);
+			return Math.max(duration, 0);
+		}
+
+		protected function playDuration():int
+		{
+			return int(channel.position);
+		}
+
+		protected function recordSampleDataHandler(event:SampleDataEvent):void
+		{
+			while(event.data.bytesAvailable)
+			{
+				var sample:Number = event.data.readFloat();
+
+				buffer.writeFloat(sample);
+				if(buffer.length % 40000 == 0){
+				}
+			}
+		}
+
+		protected function playSampleDataHandler(event:SampleDataEvent):void
+		{
+			var expectedSampleRate = 44.1;
+			var writtenSamples = 0;
+			var channels = 2;
+			var maxSamples = 8192 * channels;
+			// if the sampleRate doesn't match the expectedSampleRate of flash.media.Sound (44.1) write the sample multiple times
+			// this will result in a little down pitchshift.
+			// also write 2 times for stereo channels
+			while(writtenSamples < maxSamples && buffer.bytesAvailable)
+			{
+				var sample:Number = buffer.readFloat();
+			  for (var j:int = 0; j < channels * (expectedSampleRate / sampleRate); j++){
+					event.data.writeFloat(sample);
+					writtenSamples++;
+					if(writtenSamples >= maxSamples){
+						break;
+					}
+				}
+			}
+			trace("Wrote " + writtenSamples + " samples");
+		}
+	}
+}
