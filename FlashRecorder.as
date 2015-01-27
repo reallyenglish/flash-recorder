@@ -5,6 +5,7 @@ package {
   public class FlashRecorder extends Sprite {
     public function FlashRecorder() {
       var recorder = new Recorder();
+      recorder.setRecorderInstance(root.loaderInfo.parameters.recorderInstance);
       recorder.addExternalInterfaceCallbacks();
     }
   }

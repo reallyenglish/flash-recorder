@@ -32,6 +32,10 @@ package
 		{
 		}
 
+		public function setRecorderInstance(instance:String):void {
+			this.recorderInstance = instance + '.';
+		}
+
 		public function addExternalInterfaceCallbacks():void {
 			ExternalInterface.addCallback("recordStart", 		this.record);
 			ExternalInterface.addCallback("isRecording", 		this.inRecording);
@@ -45,7 +49,6 @@ package
 
 
 			trace("Recorder initialized");
-			this.recorderInstance = 'window.recorder.';
 			triggerEvent('initialized');
 		}
 
