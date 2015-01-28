@@ -8,6 +8,7 @@
  */
 package
 {
+	import com.adobe.audio.format.WAVWriter;
 	import flash.events.TimerEvent;
 	import flash.events.Event;
 	import flash.events.ErrorEvent;
@@ -24,6 +25,7 @@ package
 	import flash.events.StatusEvent;
 
 	import mx.collections.ArrayCollection;
+	import mx.utils.Base64Encoder;
 
 
 	public class Recorder
@@ -42,7 +44,7 @@ package
 			ExternalInterface.addCallback("isMicrophoneMuted", 		this.isMicrophoneMuted);
 			ExternalInterface.addCallback("recordStop",  		this.stop);
 			ExternalInterface.addCallback("playback",          this.play);
-			ExternalInterface.addCallback("audioData",      this.audioData);
+			ExternalInterface.addCallback("wavData",      this.getWAVData);
 			ExternalInterface.addCallback("showFlash",      this.showFlash);
 			ExternalInterface.addCallback("recordingDuration",     this.recordingDuration);
 			ExternalInterface.addCallback("playDuration",     this.playDuration);
@@ -130,27 +132,6 @@ package
 			}
 		}
 
-		protected function audioData(newData:String=null):String
-		{
-			var delimiter = ";"
-			if(newData){
-				buffer = new ByteArray();
-				var splittedData = newData.split(delimiter);
-				for(var i=0; i < splittedData.length; i++){
-					buffer.writeFloat(parseFloat(splittedData[i]));
-				}
-				return "";
-			}else{
-				var ret:String="";
-				buffer.position = 0;
-				while (buffer.bytesAvailable > 0)
-				{
-					ret += buffer.readFloat().toString() + delimiter;
-				}
-				return ret;
-			}
-		}
-
 		protected function showFlash():void
 		{
 			Security.showSettings(SecurityPanel.PRIVACY);
@@ -186,6 +167,22 @@ package
 			trace('startRecording');
 			triggerEvent('record');
 			isRecording = true;
+		}
+
+		/* Sample related */
+		protected function getWAVData():String
+		{
+			var wavData:ByteArray = new ByteArray();
+			var wavWriter:WAVWriter = new WAVWriter(); 
+			buffer.position = 0;
+			wavWriter.numOfChannels = 1; // set the inital properties of the Wave Writer 
+			wavWriter.sampleBitRate = 16;
+			wavWriter.samplingRate = sampleRate * 1000;
+			wavWriter.processSamples(wavData, buffer, sampleRate * 1000, 1);
+			wavData.position = 0;
+			var b64:Base64Encoder = new Base64Encoder();
+			b64.encodeBytes(wavData);
+			return b64.toString();
 		}
 
 		protected function recordingDuration():int
