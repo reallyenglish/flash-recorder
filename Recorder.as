@@ -114,6 +114,7 @@ package
 			channel = sound.play();
 			channel.addEventListener(Event.SOUND_COMPLETE, function(){
 				playStop();
+				triggerEvent('ended');
 			});
 		}
 
