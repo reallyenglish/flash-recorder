@@ -17,4 +17,4 @@ else
 fi
 
 mxmlc=$flex/bin/mxmlc
-$mxmlc $debug $warning -static-link-runtime-shared-libraries=true -optimize=true -o recorder.swf -file-specs FlashRecorder.as
+$mxmlc $debug $warning  -library-path+=shineMP3_alchemy.swc -static-link-runtime-shared-libraries=true -optimize=true -o recorder.swf -file-specs FlashRecorder.as

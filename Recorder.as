@@ -9,9 +9,11 @@
 package
 {
 	import com.adobe.audio.format.WAVWriter;
+	import fr.kikko.lab.ShineMP3Encoder;
 	import flash.events.TimerEvent;
 	import flash.events.Event;
 	import flash.events.ErrorEvent;
+	import flash.events.ProgressEvent;
 	import flash.events.SampleDataEvent;
 	import flash.external.ExternalInterface;
 	import flash.media.Microphone;
@@ -45,6 +47,7 @@ package
 			ExternalInterface.addCallback("recordStop",  		this.stop);
 			ExternalInterface.addCallback("playback",          this.play);
 			ExternalInterface.addCallback("wavData",      this.getWAVData);
+			ExternalInterface.addCallback("mp3Data",      this.encodeMP3Data);
 			ExternalInterface.addCallback("showFlash",      this.showFlash);
 			ExternalInterface.addCallback("recordingDuration",     this.recordingDuration);
 			ExternalInterface.addCallback("playDuration",     this.playDuration);
@@ -65,6 +68,7 @@ package
 		protected var recordingStartTime = 0;
 		protected static var sampleRate = 44.1;
 		private var recorderInstance:String;
+		private var mp3Encoder:ShineMP3Encoder;
 
 		protected function record():void
 		{
@@ -171,7 +175,7 @@ package
 		}
 
 		/* Sample related */
-		protected function getWAVData():String
+		protected function getWAVByteArray():ByteArray
 		{
 			var wavData:ByteArray = new ByteArray();
 			var wavWriter:WAVWriter = new WAVWriter(); 
@@ -181,9 +185,44 @@ package
 			wavWriter.samplingRate = sampleRate * 1000;
 			wavWriter.processSamples(wavData, buffer, sampleRate * 1000, 1);
 			wavData.position = 0;
+			return wavData;
+		}
+
+		/* Sample related */
+		protected function getWAVData():String
+		{
+			var wavData:ByteArray = this.getWAVByteArray();
 			var b64:Base64Encoder = new Base64Encoder();
 			b64.encodeBytes(wavData);
 			return b64.toString();
+		}
+
+		protected function encodeMP3Data(): void
+		{
+			var wavData:ByteArray = this.getWAVByteArray();
+			this.mp3Encoder = new ShineMP3Encoder(wavData);
+			this.mp3Encoder.addEventListener(Event.COMPLETE, mp3EncodeComplete);
+			this.mp3Encoder.addEventListener(ProgressEvent.PROGRESS, mp3EncodeProgress);
+			this.mp3Encoder.addEventListener(ErrorEvent.ERROR, mp3EncodeError);
+			this.mp3Encoder.start();
+		}
+
+		private function mp3EncodeProgress(event : ProgressEvent) : void
+		{
+			trace(event.bytesLoaded, event.bytesTotal);
+		}
+
+		private function mp3EncodeError(event : ErrorEvent) : void
+		{
+			trace("Error : ", event.text);
+		}
+
+		private function mp3EncodeComplete(event : Event) : void
+		{
+			trace("Done !", this.mp3Encoder.mp3Data.length);
+			var b64:Base64Encoder = new Base64Encoder();
+			b64.encodeBytes(this.mp3Encoder.mp3Data);
+			triggerEvent('mp3Data', b64.toString());
 		}
 
 		protected function recordingDuration():int
