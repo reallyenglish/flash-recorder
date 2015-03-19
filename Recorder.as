@@ -41,6 +41,8 @@ package
 			ExternalInterface.addCallback("isRecording", 		this.inRecording);
 			ExternalInterface.addCallback("isMicrophoneMuted", 		this.isMicrophoneMuted);
 			ExternalInterface.addCallback("recordStop",  		this.stop);
+			ExternalInterface.addCallback("stop",  		this.playStop);
+			ExternalInterface.addCallback("pause",  		this.playPause);
 			ExternalInterface.addCallback("playback",          this.play);
 			ExternalInterface.addCallback("audioData",      this.audioData);
 			ExternalInterface.addCallback("showFlash",      this.showFlash);
@@ -55,6 +57,7 @@ package
 
 		protected var isRecording:Boolean = false;
 		protected var isPlaying:Boolean = false;
+		protected var isPaused:Boolean = false;
 		protected var microphoneWasMuted:Boolean;
 		protected var microphone:Microphone;
 		protected var buffer:ByteArray = new ByteArray();
@@ -105,7 +108,10 @@ package
 		{
 			trace('startPlaying');
 			isPlaying = true;
-			buffer.position = 0;
+			if (!isPaused) {
+				buffer.position = 0;
+			}
+			isPaused = false;
 			sound = new Sound();
 			sound.addEventListener(SampleDataEvent.SAMPLE_DATA, playSampleDataHandler);
 
@@ -121,11 +127,22 @@ package
 			return recordStop();
 		}
 
+		protected function playPause():void
+		{
+			trace('pausePlaying');
+			if(channel){
+				channel.stop();
+				isPaused = true;
+				isPlaying = false;
+			}
+		}
+
 		protected function playStop():void
 		{
 			trace('stopPlaying');
 			if(channel){
 				channel.stop();
+				isPaused = false;
 				isPlaying = false;
 			}
 		}
