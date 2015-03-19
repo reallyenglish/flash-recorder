@@ -64,6 +64,7 @@ package
 		protected var sound:Sound;
 		protected var channel:SoundChannel;
 		protected var recordingStartTime = 0;
+		protected var duration:int = 0;
 		protected static var sampleRate = 44.1;
 		private var recorderInstance:String;
 
@@ -203,12 +204,15 @@ package
 			trace('startRecording');
 			triggerEvent('record');
 			isRecording = true;
+			duration = 0;
 		}
 
 		protected function recordingDuration():int
 		{
-			var duration = int(getTimer() - recordingStartTime);
-			return Math.max(duration, 0);
+			if (!duration) {
+				duration = Math.max(int(getTimer() - recordingStartTime), 0);
+			}
+			return duration;
 		}
 
 		protected function playDuration():int
