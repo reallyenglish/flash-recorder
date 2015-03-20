@@ -41,8 +41,8 @@ package
 			ExternalInterface.addCallback("isRecording", 		this.inRecording);
 			ExternalInterface.addCallback("isMicrophoneMuted", 		this.isMicrophoneMuted);
 			ExternalInterface.addCallback("recordStop",  		this.stop);
-			ExternalInterface.addCallback("stop",  		this.playStop);
-			ExternalInterface.addCallback("pause",  		this.playPause);
+			ExternalInterface.addCallback("playStop",  		this.playStop);
+			ExternalInterface.addCallback("playPause",  		this.playPause);
 			ExternalInterface.addCallback("playback",          this.play);
 			ExternalInterface.addCallback("audioData",      this.audioData);
 			ExternalInterface.addCallback("showFlash",      this.showFlash);
@@ -118,6 +118,7 @@ package
 
 			channel = sound.play();
 			channel.addEventListener(Event.SOUND_COMPLETE, function(){
+				triggerEvent('ended');
 				playStop();
 			});
 		}
