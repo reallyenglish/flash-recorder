@@ -8,7 +8,6 @@
  */
 package
 {
-	import com.adobe.audio.format.WAVWriter;
 	import flash.events.TimerEvent;
 	import flash.events.Event;
 	import flash.events.ErrorEvent;
@@ -26,8 +25,6 @@ package
 	import flash.events.StatusEvent;
 
 	import mx.collections.ArrayCollection;
-	import mx.utils.Base64Encoder;
-
 
 	public class Recorder
 	{
@@ -47,7 +44,6 @@ package
 			ExternalInterface.addCallback("playStop",  		this.playStop);
 			ExternalInterface.addCallback("playPause",  		this.playPause);
 			ExternalInterface.addCallback("playback",          this.play);
-			ExternalInterface.addCallback("wavData",      this.getWAVData);
 			ExternalInterface.addCallback("showFlash",      this.showFlash);
 			ExternalInterface.addCallback("recordingDuration",     this.recordingDuration);
 			ExternalInterface.addCallback("playDuration",     this.playDuration);
@@ -189,29 +185,6 @@ package
 			triggerEvent('record');
 			isRecording = true;
 			duration = 0;
-		}
-
-		/* Sample related */
-		protected function getWAVByteArray():ByteArray
-		{
-			var wavData:ByteArray = new ByteArray();
-			var wavWriter:WAVWriter = new WAVWriter(); 
-			buffer.position = 0;
-			wavWriter.numOfChannels = 1; // set the inital properties of the Wave Writer 
-			wavWriter.sampleBitRate = 16;
-			wavWriter.samplingRate = sampleRate * 1000;
-			wavWriter.processSamples(wavData, buffer, sampleRate * 1000, 1);
-			wavData.position = 0;
-			return wavData;
-		}
-
-		/* Sample related */
-		protected function getWAVData():String
-		{
-			var wavData:ByteArray = this.getWAVByteArray();
-			var b64:Base64Encoder = new Base64Encoder();
-			b64.encodeBytes(wavData);
-			return b64.toString();
 		}
 
 		protected function recordingDuration():int
