@@ -76,6 +76,7 @@ package
 			microphoneWasMuted = microphone.muted;
 			if(microphoneWasMuted){
 				trace('showFlashRequired');
+				showFlash();
 				triggerEvent('microphoneMuted');
 			}else{
 				notifyRecordingStarted();
