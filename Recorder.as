@@ -164,12 +164,15 @@ package
 			microphone.setSilenceLevel(0);
 			microphone.rate = sampleRate;
 			microphone.gain = 50;
-			microphone.addEventListener(StatusEvent.STATUS, function statusHandler(e:Event) {
+			microphone.addEventListener(StatusEvent.STATUS, function statusHandler(e:StatusEvent) {
 				trace('Microphone Status Change');
-				if(!microphone.muted){
+				if(e.code == "Microphone.Unmuted"){
 					if(!isRecording){
 						notifyRecordingStarted();
 					}
+				} else if (e.code == "Microphone.Muted") {
+					showFlash();
+					triggerEvent('microphoneMuted');
 				}
 			});
 
